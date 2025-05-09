@@ -1,0 +1,374 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Courier New', monospace;
+}
+
+body {
+    background-color: #000;
+    color: #b30000;
+    overflow: hidden;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23b30000"><circle cx="12" cy="12" r="6" /></svg>') 12 12, auto;
+}
+
+#loading-screen {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 1.5s;
+}
+
+#loading-text {
+    color: #b30000;
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 10px;
+    margin-bottom: 20px;
+    animation: flicker 2s infinite;
+}
+
+#progress-bar {
+    width: 50%;
+    height: 5px;
+    background-color: #222;
+    border: 1px solid #b30000;
+    margin-top: 20px;
+}
+
+#progress {
+    width: 0%;
+    height: 100%;
+    background-color: #b30000;
+    transition: width 0.3s;
+}
+
+#warning {
+    color: #b30000;
+    text-align: center;
+    margin-top: 40px;
+    max-width: 600px;
+    font-size: 14px;
+    opacity: 0;
+    animation: fadeIn 2s forwards 1s;
+}
+
+@keyframes flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 5px #b30000, 0 0 10px #b30000;
+    }
+    20%, 24%, 55% {
+        opacity: 0.5;
+        text-shadow: none;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 0.8; }
+}
+
+#intro {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    color: #b30000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 900;
+    text-align: center;
+}
+
+#intro-text {
+    font-size: 18px;
+    max-width: 800px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+}
+
+#begin-btn {
+    padding: 12px 24px;
+    background-color: transparent;
+    border: 1px solid #b30000;
+    color: #b30000;
+    cursor: pointer;
+    font-size: 16px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: all 0.3s;
+}
+
+#begin-btn:hover {
+    background-color: rgba(179, 0, 0, 0.2);
+    box-shadow: 0 0 10px #b30000;
+}
+
+#canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 2s;
+}
+
+#facetime-container {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#facetime-window {
+    width: 90%;
+    max-width: 900px;
+    height: 80%;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid #b30000;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 30px rgba(179, 0, 0, 0.5);
+}
+
+#facetime-header {
+    height: 40px;
+    background-color: #000;
+    border-bottom: 1px solid #b30000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+}
+
+#call-status {
+    color: #b30000;
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+#end-call {
+    background-color: #b30000;
+    color: #000;
+    border: none;
+    width: 80px;
+    height: 25px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#video-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background-color: #000;
+}
+
+#horror-video {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#static-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0"/></filter><rect width="500" height="500" filter="url(%23noise)" opacity="0.2"/></svg>');
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+#connecting-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #b30000;
+    font-size: 24px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+#chat-container {
+    height: 30%;
+    border-top: 1px solid #b30000;
+    display: flex;
+    flex-direction: column;
+}
+
+#chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #b30000;
+    font-size: 14px;
+}
+
+.system-message {
+    color: #666;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.incoming-message {
+    color: #b30000;
+    margin-bottom: 10px;
+}
+
+.user-message {
+    color: #fff;
+    margin-bottom: 10px;
+    text-align: right;
+}
+
+#chat-input-container {
+    display: flex;
+    border-top: 1px solid #b30000;
+    height: 50px;
+}
+
+#chat-input {
+    flex: 1;
+    background-color: #000;
+    border: none;
+    color: #fff;
+    padding: 10px 15px;
+    font-size: 14px;
+}
+
+#chat-input:focus {
+    outline: none;
+}
+
+#send-btn {
+    width: 80px;
+    background-color: #b30000;
+    color: #000;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#judgment-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    z-index: 20;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #b30000;
+    padding: 20px;
+    text-align: center;
+}
+
+#judgment-title {
+    font-size: 36px;
+    margin-bottom: 30px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    animation: flicker 3s infinite;
+}
+
+#accused-name {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+#crime-details {
+    font-size: 18px;
+    margin-bottom: 40px;
+    max-width: 800px;
+}
+
+#punishment-title {
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+#punishment-details {
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: 800px;
+}
+
+#restart-btn {
+    margin-top: 40px;
+    padding: 12px 24px;
+    background-color: transparent;
+    border: 1px solid #b30000;
+    color: #b30000;
+    cursor: pointer;
+    font-size: 16px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: all 0.3s;
+}
+
+#restart-btn:hover {
+    background-color: rgba(179, 0, 0, 0.2);
+    box-shadow: 0 0 10px #b30000;
+}
+
+.glitch {
+    animation: glitch 1s linear infinite;
+}
+
+@keyframes glitch {
+    2%, 64% {
+        transform: translate(2px, 0) skew(0deg);
+    }
+    4%, 60% {
+        transform: translate(-2px, 0) skew(0deg);
+    }
+    62% {
+        transform: translate(0, 0) skew(5deg);
+    }
+}
+
+.screen-shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+    10%, 90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+    20%, 80% {
+        transform: translate3d(2px, 0, 0);
+    }
+    30%, 50%, 70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+    40%, 60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}

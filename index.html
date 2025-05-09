@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>अपरिचित - अपने डर का सामना करें</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+}
+
+body {
+    background-color: #000;
+    color: #b30000;
+    overflow: hidden;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23b30000"><circle cx="12" cy="12" r="6" /></svg>') 12 12, auto;
+}
+
+#loading-screen {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 1.5s;
+}
+
+#loading-text {
+    color: #b30000;
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 10px;
+    margin-bottom: 20px;
+    animation: flicker 2s infinite;
+}
+
+#progress-bar {
+    width: 50%;
+    height: 5px;
+    background-color: #222;
+    border: 1px solid #b30000;
+    margin-top: 20px;
+}
+
+#progress {
+    width: 0%;
+    height: 100%;
+    background-color: #b30000;
+    transition: width 0.3s;
+}
+
+#warning {
+    color: #b30000;
+    text-align: center;
+    margin-top: 40px;
+    max-width: 600px;
+    font-size: 14px;
+    opacity: 0;
+    animation: fadeIn 2s forwards 1s;
+}
+
+@keyframes flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 5px #b30000, 0 0 10px #b30000;
+    }
+    20%, 24%, 55% {
+        opacity: 0.5;
+        text-shadow: none;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 0.8; }
+}
+
+#intro {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    color: #b30000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 900;
+    text-align: center;
+}
+
+#intro-text {
+    font-size: 18px;
+    max-width: 800px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+}
+
+#begin-btn {
+    padding: 12px 24px;
+    background-color: transparent;
+    border: 1px solid #b30000;
+    color: #b30000;
+    cursor: pointer;
+    font-size: 16px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: all 0.3s;
+}
+
+#begin-btn:hover {
+    background-color: rgba(179, 0, 0, 0.2);
+    box-shadow: 0 0 10px #b30000;
+}
+
+#canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 2s;
+}
+
+#facetime-container {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#facetime-window {
+    width: 90%;
+    max-width: 900px;
+    height: 80%;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid #b30000;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 30px rgba(179, 0, 0, 0.5);
+}
+
+#facetime-header {
+    height: 40px;
+    background-color: #000;
+    border-bottom: 1px solid #b30000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+}
+
+#call-status {
+    color: #b30000;
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+#end-call {
+    background-color: #b30000;
+    color: #000;
+    border: none;
+    width: 80px;
+    height: 25px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#video-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background-color: #000;
+}
+
+#horror-video {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#entity-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+#entity-character {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+}
+
+#static-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0"/></filter><rect width="500" height="500" filter="url(%23noise)" opacity="0.2"/></svg>');
+    opacity: 0.1;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#connecting-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #b30000;
+    font-size: 24px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+#chat-container {
+    height: 30%;
+    border-top: 1px solid #b30000;
+    display: flex;
+    flex-direction: column;
+}
+
+#chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #b30000;
+    font-size: 14px;
+}
+
+.system-message {
+    color: #666;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.incoming-message {
+    color: #b30000;
+    margin-bottom: 10px;
+}
+
+.user-message {
+    color: #fff;
+    margin-bottom: 10px;
+    text-align: right;
+}
+
+#chat-input-container {
+    display: flex;
+    border-top: 1px solid #b30000;
+    height: 50px;
+}
+
+#chat-input {
+    flex: 1;
+    background-color: #000;
+    border: none;
+    color: #fff;
+    padding: 10px 15px;
+    font-size: 14px;
+}
+
+#chat-input:focus {
+    outline: none;
+}
+
+#send-btn {
+    width: 80px;
+    background-color: #b30000;
+    color: #000;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#judgment-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    z-index: 20;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #b30000;
+    padding: 20px;
+    text-align: center;
+}
+
+#judgment-title {
+    font-size: 36px;
+    margin-bottom: 30px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    animation: flicker 3s infinite;
+}
+
+#accused-name {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+#crime-details {
+    font-size: 18px;
+    margin-bottom: 40px;
+    max-width: 800px;
+}
+
+#punishment-title {
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+#punishment-details {
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: 800px;
+}
+
+#restart-btn {
+    margin-top: 40px;
+    padding: 12px 24px;
+    background-color: transparent;
+    border: 1px solid #b30000;
+    color: #b30000;
+    cursor: pointer;
+    font-size: 16px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: all 0.3s;
+}
+
+#restart-btn:hover {
+    background-color: rgba(179, 0, 0, 0.2);
+    box-shadow: 0 0 10px #b30000;
+}
+
+.glitch {
+    animation: glitch 1s linear infinite;
+}
+
+@keyframes glitch {
+    2%, 64% {
+        transform: translate(2px, 0) skew(0deg);
+    }
+    4%, 60% {
+        transform: translate(-2px, 0) skew(0deg);
+    }
+    62% {
+        transform: translate(0, 0) skew(5deg);
+    }
+}
+
+.screen-shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+    10%, 90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+    20%, 80% {
+        transform: translate3d(2px, 0, 0);
+    }
+    30%, 50%, 70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+    40%, 60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+#entity-speak {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #b30000;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    max-width: 90%;
+    text-align: center;
+    display: none;
+    z-index: 15;
+}
+
+.face-reveal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('/api/placeholder/400/500');
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 5;
+}
+
+.mouth-animation {
+    animation: mouth-move 0.3s infinite alternate;
+}
+
+@keyframes mouth-move {
+    from { transform: scaleY(1); }
+    to { transform: scaleY(1.2); }
+}
+
+.whisper {
+    position: fixed;
+    color: rgba(179, 0, 0, 0.7);
+    font-size: 20px;
+    text-transform: uppercase;
+    z-index: 5;
+    opacity: 0;
+    animation: whisper-fade 2s forwards;
+}
+
+@keyframes whisper-fade {
+    0% { opacity: 0; }
+    20% { opacity: 0.7; }
+    80% { opacity: 0.7; }
+    100% { opacity: 0; }
+}
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div id="loading-text">अपरिचित लोड हो रहा है</div>
+        <div id="progress-bar">
+            <div id="progress"></div>
+        </div>
+        <div id="warning">चेतावनी: इस अनुभव में हॉरर तत्व और परेशान करने वाले दृश्य शामिल हैं। अपने जोखिम पर आगे बढ़ें।</div>
+    </div>
+
+    <div id="intro">
+        <div id="intro-text">
+            अपरिचित में आपका स्वागत है, प्राचीन न्याय का द्वार।<br><br>
+            आप एक ऐसे क्षेत्र में प्रवेश कर चुके हैं जहां अपराधों का न्याय गरुड़ पुराण के पवित्र ग्रंथों के अनुसार किया जाता है।<br>
+            आप जिस प्राणी से बात करेंगे वह हमारी दुनिया से परे अस्तित्व रखता है, आपकी शिकायतें सुनने का इंतज़ार कर रहा है।<br><br>
+            अभियुक्त और उनके अपराध का विस्तार से वर्णन करें। इसके अनुसार फैसला सुनाया जाएगा।<br><br>
+            क्या आप उस चीज़ का सामना करने के लिए तैयार हैं जो आगे है?
+        </div>
+        <button id="begin-btn">शुरू करें</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="facetime-container">
+        <div id="facetime-window">
+            <div id="facetime-header">
+                <div id="call-status">कनेक्ट हो रहा है...</div>
+                <button id="end-call">कॉल समाप्त</button>
+            </div>
+            <div id="video-container">
+                <div id="connecting-text">कनेक्शन स्थापित किया जा रहा है...</div>
+                <div id="entity-container">
+                    <div id="entity-character"></div>
+                    <div id="entity-speak"></div>
+                </div>
+                <video id="horror-video" loop>
+                    <!-- Video source will be generated by JS -->
+                </video>
+                <div id="static-overlay"></div>
+                <div id="face-reveal" class="face-reveal"></div>
+            </div>
+            <div id="chat-container">
+                <div id="chat-messages">
+                    <div class="system-message">* अज्ञात प्राणी के साथ कनेक्शन स्थापित हुआ *</div>
+                </div>
+                <div id="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="अभियुक्त और उनके अपराध का वर्णन करें...">
+                    <button id="send-btn">भेजें</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="judgment-container">
+        <div id="judgment-title">फैसला सुनाया गया</div>
+        <div id="accused-name"></div>
+        <div id="crime-details"></div>
+        <div id="punishment-title">गरुड़ पुराण के अनुसार सज़ा</div>
+        <div id="punishment-details"></div>
+        <button id="restart-btn">वापस जाएँ</button>
+        
+
+    </div>
+    
+      
+
+    <script>
+// Three.js background animation
+let scene, camera, renderer, particles;
+let entityModel, entityHead, entityHair, entityMouth;
+
+function initThreeJS() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 1);
+    
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+    
+    // Create particles for background
+    const particlesGeometry = new THREE.BufferGeometry();
+    const particlesCount = 2000;
+    
+    const posArray = new Float32Array(particlesCount * 3);
+    
+    for(let i = 0; i < particlesCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 50;
+    }
+    
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    
+    // Material
+    const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.05,
+        color: 0xb30000,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending
+    });
+    
+    particles = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particles);
+    
+    camera.position.z = 15;
+    
+    // Create the entity character for the video call
+    createEntityCharacter();
+    
+    animate();
+}
+
+function createEntityCharacter() {
+    // Create entity container to add to the scene for the video call
+    entityModel = new THREE.Group();
+    
+    // Create head - simple sphere for now
+    const headGeometry = new THREE.SphereGeometry(1, 32, 32);
+    const headMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x150000,
+        transparent: true,
+        opacity: 0.8
+    });
+    entityHead = new THREE.Mesh(headGeometry, headMaterial);
+    entityModel.add(entityHead);
+    
+    // Create hair - using cone shapes for long hair effect
+    const hairGroup = new THREE.Group();
+    
+    for (let i = 0; i < 50; i++) {
+        const hairStrandGeometry = new THREE.ConeGeometry(0.05, 4, 8);
+        const hairMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const hairStrand = new THREE.Mesh(hairStrandGeometry, hairMaterial);
+        
+        // Position hair strands around head
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 0.8 + Math.random() * 0.3;
+        hairStrand.position.set(
+            Math.cos(angle) * radius,
+            0.2 - Math.random() * 0.5,
+            Math.sin(angle) * radius
+        );
+        
+        // Rotate to hang down
+        hairStrand.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.2;
+        hairStrand.rotation.z = angle;
+        
+        hairGroup.add(hairStrand);
+    }
+    
+    entityHair = hairGroup;
+    entityModel.add(entityHair);
+    
+    // Create eyes - creepy glowing red eyes
+    const eyeGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+    const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    
+    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    leftEye.position.set(-0.3, 0.2, 0.85);
+    entityModel.add(leftEye);
+    
+    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    rightEye.position.set(0.3, 0.2, 0.85);
+    entityModel.add(rightEye);
+    
+    // Create mouth - will be animated when speaking
+    const mouthGeometry = new THREE.BoxGeometry(0.5, 0.1, 0.1);
+    const mouthMaterial = new THREE.MeshBasicMaterial({ color: 0x330000 });
+    entityMouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+    entityMouth.position.set(0, -0.4, 0.85);
+    entityModel.add(entityMouth);
+    
+    // Add to scene
+    scene.add(entityModel);
+    
+    // Position the entity off-screen initially
+    entityModel.position.z = 30;
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    particles.rotation.x += 0.0001;
+    particles.rotation.y += 0.0002;
+    
+    const positions = particles.geometry.attributes.position.array;
+    
+    for (let i = 0; i < positions.length; i += 3) {
+        // Create subtle movement
+        positions[i] += Math.sin(Date.now() * 0.001 + i) * 0.0005;
+        positions[i+1] += Math.cos(Date.now() * 0.001 + i) * 0.0005;
+    }
+    
+    particles.geometry.attributes.position.needsUpdate = true;
+    
+    // Animate entity if active
+    if (entityModel && entityModel.position.z < 10) {
+        // Subtle head movement
+        entityModel.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
+        entityModel.rotation.x = Math.sin(Date.now() * 0.0007) * 0.05;
+        
+        // Hair movement
+        entityHair.children.forEach((strand, i) => {
+            strand.position.y = 0.2 - Math.random() * 0.5 + Math.sin(Date.now() * 0.002 + i) * 0.02;
+            strand.rotation.z = strand.rotation.z + Math.sin(Date.now() * 0.001 + i) * 0.001;
+        });
+        
+        // Mouth movement if speaking
+        if (entitySpeaking) {
+            entityMouth.scale.y = 1 + Math.sin(Date.now() * 0.01) * 0.5;
+        } else {
+            entityMouth.scale.y = 1;
+        }
+    }
+    
+    renderer.render(scene, camera);
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+window.addEventListener('resize', onWindowResize);
+
+// Sound effects setup with preloaded audio
+const sounds = {
+    ambient: new Howl({
+        src: ['https://freesound.org/data/previews/417/417486_5121236-lq.mp3'],
+        loop: true,
+        volume: 0.3,
+        preload: true
+    }),
+    call: new Howl({
+        src: ['https://freesound.org/data/previews/449/449391_9159316-lq.mp3'],
+        volume: 0.7,
+        preload: true
+    }),
+    static: new Howl({
+        src: ['https://freesound.org/data/previews/103/103152_1087468-lq.mp3'],
+        loop: true,
+        volume: 0.2,
+        preload: true
+    }),
+    glitch: new Howl({
+        src: ['https://freesound.org/data/previews/133/133725_2392687-lq.mp3'],
+        volume: 0.5,
+        preload: true
+    }),
+    judgment: new Howl({
+        src: ['https://freesound.org/data/previews/467/467622_1572544-lq.mp3'],
+        volume: 0.8,
+        preload: true
+    })
+};
+
+// Fallback for any sound loading issues
+Object.keys(sounds).forEach(key => {
+    sounds[key].on('loaderror', function() {
+        console.warn(`Sound ${key} failed to load. Using silent fallback.`);
+        sounds[key] = {
+            play: () => {},
+            stop: () => {},
+            fade: () => {}
+        };
+    });
+});
+
+// Entity speaking state
+let entitySpeaking = false;
+
+// Show the entity in the video call
+function showEntity() {
+    // Hide the "connecting" text
+    document.getElementById('connecting-text').style.display = 'none';
+    
+    // Show the entity container
+    document.getElementById('entity-container').style.display = 'block';
+    
+    // Move entity into view (Three.js)
+    if (entityModel) {
+        const moveEntity = () => {
+            if (entityModel.position.z > 5) {
+                entityModel.position.z -= 0.2;
+                requestAnimationFrame(moveEntity);
+            }
+        };
+        moveEntity();
+    }
+    
+    // Make entity speak
+    setTimeout(() => {
+        entitySpeak("मैं तुम्हारी बातें सुन रहा हूँ... अपराधी के बारे में बताओ...");
+    }, 2000);
+    
+    // Set call status to connected
+    document.getElementById('call-status').innerText = 'जुड़ गया है';
+    
+    // Play static sound
+    sounds.static.play();
+    
+    // Make the video glitch occasionally
+    setInterval(() => {
+        if (Math.random() > 0.7) {
+            document.getElementById('entity-container').classList.add('glitch');
+            setTimeout(() => {
+                document.getElementById('entity-container').classList.remove('glitch');
+            }, 200);
+        }
+    }, 3000);
+    
+    // Add scary face reveal occasionally
+    setInterval(() => {
+        if (Math.random() > 0.9) {
+            revealFace();
+        }
+    }, 15000);
+}
+
+// Function to make entity speak
+function entitySpeak(text) {
+    const speakElement = document.getElementById('entity-speak');
+    speakElement.textContent = text;
+    speakElement.style.display = 'block';
+    entitySpeaking = true;
+    
+    // Make entity mouth animate
+    if (entityMouth) {
+        entityMouth.material.color.set(0x550000);
+    }
+    
+    // Hide text after delay
+    setTimeout(() => {
+        speakElement.style.display = 'none';
+        entitySpeaking = false;
+        if (entityMouth) {
+            entityMouth.material.color.set(0x330000);
+        }
+    }, text.length * 150); // Time depends on text length
+}
+
+// Function to briefly reveal a scary face
+function revealFace() {
+    const faceOverlay = document.getElementById('face-reveal');
+    if (!faceOverlay) return;
+    
+    // Play glitch sound
+    sounds.glitch.play();
+    
+    // Show the face
+    faceOverlay.style.opacity = '1';
+    
+    // Shake the screen
+    document.getElementById('facetime-window').classList.add('screen-shake');
+    
+    // Hide after a brief moment
+    setTimeout(() => {
+        faceOverlay.style.opacity = '0';
+        document.getElementById('facetime-window').classList.remove('screen-shake');
+    }, 200);
+}
+
+// Random horror messages from the entity in Hindi
+const horrorResponses = [
+    "मैं तुम्हारे घृणा को महसूस कर सकता हूँ... इस व्यक्ति के बारे में और बताओ।",
+    "उनके पाप बड़े हैं। सज़ा भयंकर होगी।",
+    "प्राचीन ग्रंथ ऐसे अपराधों के बारे में बात करते हैं। वे पीड़ित होंगे।",
+    "मैं तुम्हारी आँखों से देख सकता हूँ। यह व्यक्ति न्याय का हक़दार है।",
+    "गरुड़ पुराण में ऐसे पापों के लिए विशेष यातनाएँ हैं।",
+    "मेरा लोक ऐसे कर्मों को करने वालों की प्रतीक्षा करता है।",
+    "उनकी नियति निर्धारित करने के लिए मुझे अधिक विवरण चाहिए।",
+    "नरक की गहराई ऐसी आत्माओं के लिए तैयार है।",
+    "उनकी पीड़ा उनके अपराधों से मेल खाएगी। जारी रखें।",
+    "मैंने तुम्हारे माध्यम से उनके कर्म देखे हैं। वे नरक की गहराई के लिए तैयार हैं।"
+];
+
+// Create random whispers in the background
+function createWhisper() {
+    const whisperTexts = [
+        "अपराधी को सज़ा मिलेगी...",
+        "तुम्हारे पाप का हिसाब होगा...",
+        "नरक प्रतीक्षा कर रहा है...",
+        "कोई बच नहीं सकता...",
+        "यमराज बुला रहे हैं...",
+        "तुम्हारी आत्मा दाग़दार है...",
+        "अंधेरा तुम्हें निगल जाएगा..."
+    ];
+    
+    const whisper = document.createElement('div');
+    whisper.className = 'whisper';
+    whisper.textContent = whisperTexts[Math.floor(Math.random() * whisperTexts.length)];
+    
+    // Random position on screen
+    whisper.style.left = Math.random() * 80 + 10 + '%';
+    whisper.style.top = Math.random() * 80 + 10 + '%';
+    
+    document.body.appendChild(whisper);
+    
+    // Remove after animation completes
+    setTimeout(() => {
+        whisper.remove();
+    }, 3000);
+}
+
+// Simulation of loading screen
+document.addEventListener('DOMContentLoaded', function() {
+    let progress = 0;
+    const loadingInterval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(loadingInterval);
+            
+            // Show intro screen after loading
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.display = 'none';
+                    document.getElementById('intro').style.display = 'flex';
+                    
+                    // Initialize Three.js background
+                    initThreeJS();
+                    document.getElementById('canvas-container').style.opacity = '1';
+                    
+                    // Start ambient sound
+                    sounds.ambient.play();
+                }, 1500);
+            }, 1000);
+        }
+        document.getElementById('progress').style.width = progress + '%';
+    }, 300);
+});
+
+// Start the experience
+document.getElementById('begin-btn').addEventListener('click', function() {
+    document.getElementById('intro').style.display = 'none';
+    document.getElementById('facetime-container').style.display = 'flex';
+    
+    // Play call sound
+    sounds.call.play();
+    
+    // Add system message about connecting
+    const chatMessages = document.getElementById('chat-messages');
+    const connectingMessage = document.createElement('div');
+    connectingMessage.className = 'system-message';
+    connectingMessage.textContent = '* कनेक्शन स्थापित हो रहा है... *';
+    chatMessages.appendChild(connectingMessage);
+    
+    // Show the entity after a delay
+    setTimeout(() => {
+        showEntity();
+        
+        // Add connected message
+        const connectedMessage = document.createElement('div');
+        connectedMessage.className = 'system-message';
+        connectedMessage.textContent = '* अज्ञात प्राणी से जुड़ गया है *';
+        chatMessages.appendChild(connectedMessage);
+        
+        // Add first entity message
+        const entityMessage = document.createElement('div');
+        entityMessage.className = 'incoming-message';
+        entityMessage.textContent = 'मुझे बताओ... कौन है वह अपराधी जिसका न्याय होना चाहिए?';
+        chatMessages.appendChild(entityMessage);
+        
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }, 5000);
+    
+    // Create random whispers
+    setInterval(createWhisper, 20000);
+});
+
+// Handle chat input
+document.getElementById('send-btn').addEventListener('click', sendMessage);
+document.getElementById('chat-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+// Process chat message
+function sendMessage() {
+    const chatInput = document.getElementById('chat-input');
+    const message = chatInput.value.trim();
+    
+    if (message === '') return;
+    
+    // Add user message to chat
+    const chatMessages = document.getElementById('chat-messages');
+    const userMessageDiv = document.createElement('div');
+    userMessageDiv.className = 'user-message';
+    userMessageDiv.textContent = message;
+    chatMessages.appendChild(userMessageDiv);
+    
+    // Clear input
+    chatInput.value = '';
+    
+    // Play glitch sound
+    sounds.glitch.play();
+    
+    // Make screen glitch
+    document.getElementById('facetime-window').classList.add('glitch');
+    setTimeout(() => {
+        document.getElementById('facetime-window').classList.remove('glitch');
+    }, 300);
+    
+    // Entity speaks
+    setTimeout(() => {
+        entitySpeak(horrorResponses[Math.floor(Math.random() * horrorResponses.length)]);
+    }, 1000);
+    
+    // Entity response with delay
+    setTimeout(() => {
+        // Add entity response to chat
+        const entityMessageDiv = document.createElement('div');
+        entityMessageDiv.className = 'incoming-message';
+        
+        // Select random response
+        let response = horrorResponses[Math.floor(Math.random() * horrorResponses.length)];
+        
+        // Check if this is a punishment request
+        if (message.length > 50 || document.querySelectorAll('.user-message').length >= 3) {
+            // Trigger judgment after sufficient description
+            generateJudgment(message);
+            response = "फैसला प्रक्रिया शुरू हो गई है... गरुड़ पुराण के अनुसार सज़ा निर्धारित की जा रही है...";
+        }
+        
+        entityMessageDiv.textContent = response;
+        chatMessages.appendChild(entityMessageDiv);
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Reveal face if judgment is coming
+        if (document.querySelectorAll('.user-message').length >= 3) {
+            revealFace();
+        }
+    }, 2000);
+}
+
+// Generate punishment based on Garuda Purana
+function generateJudgment(message) {
+    // Extract accused person and crime
+    let accusedName = "अज्ञात अपराधी";
+    let crimeDetails = message;
+    
+    // Try to extract a name
+    const nameMatch = message.match(/(\S+)\s+(ने|को)/i);
+    if (nameMatch) {
+        accusedName = nameMatch[1];
+    }
+    
+    // Punishments from Garuda Purana
+    const punishments = [
+        "रौरव नरक: अपराधी को वहाँ के जीव अपने तीक्ष्ण दांतों से काट-काट कर खाएंगे, लेकिन वह मरेंगे नहीं और अनंत काल तक पीड़ा सहेंगे।",
+        "कुम्भीपाक नरक: अपराधी को उबलते तेल में डाला जाएगा और उनकी त्वचा कुक्कुट की तरह निकाली जाएगी। यह प्रक्रिया अनंत काल तक चलेगी।",
+        "तामिस्र नरक: अपराधी को अंधेरे में रखकर भूखा-प्यासा छोड़ दिया जाएगा। वहां वह अपने ही शरीर को खाने पर मजबूर होंगे।",
+        "अंधतामिस्र नरक: अपराधी को अत्यंत अंधकार में रखा जाएगा जहां वह अपने शरीर के अंगों को नहीं पहचान पाएंगे। भय और भ्रम में वह अनंत काल तक रहेंगे।",
+        "कालसूत्र नरक: अपराधी को लोहे के तारों से बांधकर अग्नि पर रखा जाएगा। उनकी त्वचा जलती रहेगी पर वह मरेंगे नहीं।",
+        "अवीचि नरक: अपराधी को विशाल पत्थरों के बीच कुचला जाएगा और फिर से उनका शरीर बनेगा, और यह प्रक्रिया अनंत काल तक चलेगी।",
+        "पूतिमृत्तिका नरक: अपराधी को सड़े हुए कीड़ों और मल-मूत्र के कुंड में फेंक दिया जाएगा जहां वह सड़ते रहेंगे।",
+        "लोहशंकु नरक: अपराधी के शरीर को लोहे की कीलों से छेदा जाएगा और उन्हें उल्टा लटकाया जाएगा।",
+        "दारुण नरक: अपराधी को आग की नदी में डाला जाएगा, जहां उनका मांस जलेगा लेकिन वह मरेंगे नहीं।"
+    ];
+    
+    // Select random punishment
+    const punishment = punishments[Math.floor(Math.random() * punishments.length)];
+    
+    // Set judgment details
+    document.getElementById('accused-name').textContent = accusedName;
+    document.getElementById('crime-details').textContent = crimeDetails;
+    document.getElementById('punishment-details').textContent = punishment;
+    
+    // Show judgment after delay
+    setTimeout(() => {
+        sounds.judgment.play();
+        document.getElementById('judgment-container').style.display = 'flex';
+    }, 8000);
+}
+
+// Handle end call button
+document.getElementById('end-call').addEventListener('click', function() {
+    document.getElementById('facetime-container').style.display = 'none';
+    document.getElementById('intro').style.display = 'flex';
+    
+    // Stop sounds
+    sounds.call.stop();
+    sounds.static.stop();
+    sounds.glitch.stop();
+    
+    // Reset entity
+    if (entityModel) {
+        entityModel.position.z = 30;
+    }
+    
+    // Reset chat
+    document.getElementById('chat-messages').innerHTML = '<div class="system-message">* अज्ञात प्राणी के साथ कनेक्शन स्थापित हुआ *</div>';
+    document.getElementById('chat-input').value = '';
+    document.getElementById('entity-container').style.display = 'none';
+    document.getElementById('connecting-text').style.display = 'block';
+    document.getElementById('call-status').innerText = 'कनेक्ट हो रहा है...';
+});
+
+// Handle restart button
+document.getElementById('restart-btn').addEventListener('click', function() {
+    document.getElementById('judgment-container').style.display = 'none';
+    document.getElementById('facetime-container').style.display = 'none';
+    document.getElementById('intro').style.display = 'flex';
+    
+    // Reset entity
+    if (entityModel) {
+        entityModel.position.z = 30;
+    }
+    
+    // Reset chat
+    document.getElementById('chat-messages').innerHTML = '<div class="system-message">* अज्ञात प्राणी के साथ कनेक्शन स्थापित हुआ *</div>';
+    document.getElementById('chat-input').value = '';
+    document.getElementById('entity-container').style.display = 'none';
+    document.getElementById('connecting-text').style.display = 'block';
+    document.getElementById('call-status').innerText = 'कनेक्ट हो रहा है...';
+});
+
+function speakPunishment(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'hi-IN';
+    utterance.pitch = 0.4;
+    utterance.rate = 0.8;
+    utterance.volume = 1;
+    speechSynthesis.speak(utterance);
+}
+
+// Fix for the entity rendering in Three.js
+function fixEntityRendering() {
+    // Make sure the entity is visible in the DOM
+    const entityCharacterElement = document.getElementById('entity-character');
+    
+    // Add renderer to the element
+    const entityRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    entityRenderer.setSize(entityCharacterElement.clientWidth, entityCharacterElement.clientHeight);
+    entityRenderer.setClearColor(0x000000, 0);
+    entityCharacterElement.appendChild(entityRenderer.domElement);
+    
+    // Create separate scene and camera for entity
+    const entityScene = new THREE.Scene();
+    const entityCamera = new THREE.PerspectiveCamera(75, entityCharacterElement.clientWidth / entityCharacterElement.clientHeight, 0.1, 1000);
+    entityCamera.position.z = 5;
+
+    function handleComplaint() {
+    const complaint = document.getElementById("complaint").value.toLowerCase();
+
+    // Dummy matching: simple rule-based punishment
+    let punishment = "तुम्हारे द्वारा बताए गए अपराध की सजा: ";
+
+    if (complaint.includes("cheat") || complaint.includes("धोखा")) {
+        punishment += "धोखेबाज़ नरक में जलते तेल में उबाले जाएंगे।";
+    } else if (complaint.includes("steal") || complaint.includes("चोरी")) {
+        punishment += "चोरों की उंगलियाँ काट दी जाएँगी और साँपों से डसवाया जाएगा।";
+    } else {
+        punishment += "पापियों को गरुड़ पुराण के अनुसार कीड़े खाएंगे और नरक में गिराया जाएगा।";
+    }
+
+    // Speak it
+    speakPunishment(punishment);
+}
+    
+    // Clone the entity model for this scene
+    if (entityModel) {
+        const entityModelClone = entityModel.clone();
+        entityScene.add(entityModelClone);
+        
+        // Animation function
+        function animateEntity() {
+            requestAnimationFrame(animateEntity);
+            
+            // Subtle movements
+            entityModelClone.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
+            
+            // Render
+            entityRenderer.render(entityScene, entityCamera);
+        }
+        
+        animateEntity();
+    }
+}
+
+// Call this after entity is created
+setTimeout(fixEntityRendering, 6000);
+</script>
+</body>
+</html>
